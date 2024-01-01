@@ -1,0 +1,22 @@
+<query>
+    <root_node>X000</root_node>
+    <node>
+        <label>X000</label>
+        <onnode>root_node</onnode>
+        <children>X001,X002</children>
+        <transformations />
+        <theta />
+        <output />
+    </node>
+    <node>
+        <label>X001</label>
+        <onnode>some_node</onnode>
+        <transformations>filter: $X001$ > 5;aggregate:sum</transformations>
+        <output>yes</output>
+    </node>
+    <node>
+        <label>X002</label>
+        <onnode>some_other_node</onnode>
+    </node>
+</query>
+
