@@ -1,0 +1,72 @@
+<datasources>
+	<datasource type="csv">
+		<id>
+			1
+		</id>
+		<name>
+			myCSV
+		</name>
+		<delimiter>
+			,
+		</delimiter>
+		<path>
+        /some-path/
+		</path>
+		<filename>
+			file.csv
+		</filename>
+		<headings>
+			yes
+		</headings>
+	</datasource>
+	<datasource type="excel">
+		<id>
+			2
+		</id>
+		<name>
+			myExcel
+		</name>
+		<path>
+      /some-path/
+		</path>
+		<filename>
+			file.xlsx
+		</filename>
+		<sheet>
+			Sheet1
+		</sheet>
+		<headings>
+		  no	
+		</headings>
+	</datasource>
+	<datasource type="xml">
+		<id>
+			3
+		</id>
+		<name>
+			myCSV2
+		</name>
+		<delimiter>
+			,
+		</delimiter>
+		<path>
+      /some-path/
+		</path>
+		<filename>
+			file.xml
+		</filename>
+		<headings>
+			yes
+		</headings>
+	</datasource>
+	<datasource type="db">
+		<id> 4 </id>
+		<name>sqlDb</name>
+		<system>postgresql</system>
+		<connection>localhost:5432</connection>
+		<username>bdms</username>
+		<password>mysecretpassword</password>
+		<database>postgres</database>
+	</datasource>
+</datasources>
+

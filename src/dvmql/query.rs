@@ -1,8 +1,5 @@
-use std::{fs::File, io::BufReader};
+use anyhow::Result;
 
-use anyhow::{Context, Result};
-
-use quick_xml::de::from_reader;
 use serde::Deserialize;
 
 use super::helpers::read_xml_file;
@@ -99,7 +96,7 @@ mod tests {
     #[test]
     fn test_load_query_xml() {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-        path.push("src/query/example_query.xml");
+        path.push("test_data/example_query.xml");
         let path = path.to_str().unwrap().to_string();
         let expected_query = get_expected_query();
         assert_eq!(load_query_xml(path).unwrap(), expected_query)

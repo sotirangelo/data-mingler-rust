@@ -1,5 +1,5 @@
 <query>
-    <root_node>X000</root_node>
+    <rootnode>X000</rootnode>
     <node>
         <label>X000</label>
         <onnode>root_node</onnode>
