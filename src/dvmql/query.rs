@@ -1,58 +1,103 @@
+use std::str::FromStr;
+
 use anyhow::Result;
 
+use serde::de::Deserializer;
 use serde::Deserialize;
 
 use super::helpers::read_xml_file;
+use crate::transform::aggregate::AggregationType;
+use crate::transform::Transformation;
 
 pub fn load_query_xml(query_path: String) -> Result<Query> {
-    let mut query: Query = read_xml_file(query_path)?;
-    query
-        .node
-        .iter_mut()
-        .for_each(|node| node.clear_empty_strings());
+    let query: Query = read_xml_file(query_path)?;
     Ok(query)
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Query {
-    root_node: String,
-    node: Vec<InitNode>,
+    pub root_node: String,
+    #[serde(rename = "node")]
+    pub nodes: Vec<Node>,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
-struct InitNode {
+pub struct Node {
     #[serde(rename = "onnode")]
-    name: String,
-    label: String,
-    children: Option<String>,
-    transformations: Option<String>,
-    theta: Option<String>,
-    output: Option<String>,
+    pub name: String,
+    pub label: String,
+    #[serde(default, deserialize_with = "deserialize_children")]
+    pub children: Vec<String>,
+    #[serde(default, deserialize_with = "deserialize_transformations")]
+    pub transformations: Vec<Transformation>,
+    #[serde(default, deserialize_with = "deserialize_theta")]
+    pub theta: Option<String>,
+    #[serde(default, deserialize_with = "deserialize_output")]
+    pub output: bool,
 }
 
-impl InitNode {
-    fn clear_empty_strings(&mut self) {
-        if let Some(children) = &mut self.children {
-            if children.is_empty() {
-                self.children = None;
-            }
-        }
-        if let Some(transformations) = &mut self.transformations {
-            if transformations.is_empty() {
-                self.transformations = None;
-            }
-        }
-        if let Some(theta) = &mut self.theta {
-            if theta.is_empty() {
-                self.theta = None;
-            }
-        }
-        if let Some(output) = &mut self.output {
-            if output.is_empty() {
-                self.output = None;
-            }
-        }
+fn deserialize_theta<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.is_empty() {
+        return Ok(None);
     }
+    Ok(Some(s))
+}
+
+fn deserialize_children<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(s.split(',').map(|part| part.trim().to_string()).collect())
+}
+
+fn deserialize_transformations<'de, D>(deserializer: D) -> Result<Vec<Transformation>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.is_empty() {
+        return Ok(vec![]);
+    }
+    let transformations: Vec<Transformation> = s
+        .split(';')
+        .map(|part| {
+            let part: Vec<&str> = part.splitn(2, ':').collect();
+            let transformation = part[0].trim();
+            let args = part[1].trim();
+
+            let transformation: Result<Transformation> = match transformation {
+                "aggregate" => Ok(Transformation::Aggregate(
+                    AggregationType::from_str(args).expect("should be valid aggregation"),
+                )),
+                "map" => Ok(Transformation::Map(args.to_string())),
+                "filter" => Ok(Transformation::Filter(args.to_string())),
+                &_ => panic!("Invalid transformation defined"), // TODO: Handle error
+            };
+            transformation.unwrap()
+        })
+        .collect();
+
+    Ok(transformations)
+}
+
+fn deserialize_output<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    if s.is_empty() {
+        return Ok(false);
+    }
+    return match s.to_lowercase().as_str() {
+        "yes" | "true" => Ok(true),
+        "no" | "false" => Ok(false),
+        &_ => panic!("Invalid output given"), // TODO: Handle error
+    };
 }
 
 #[cfg(test)]
@@ -64,30 +109,33 @@ mod tests {
     fn get_expected_query() -> Query {
         Query {
             root_node: "X000".to_string(),
-            node: vec![
-                InitNode {
+            nodes: vec![
+                Node {
                     label: "X000".to_string(),
                     name: "root_node".to_string(),
-                    children: Some("X001".to_string()),
-                    transformations: None,
+                    children: vec!["X001".to_string(), "X002".to_string()],
+                    transformations: vec![],
                     theta: None,
-                    output: None,
+                    output: false,
                 },
-                InitNode {
+                Node {
                     label: "X001".to_string(),
                     name: "some_node".to_string(),
-                    children: None,
-                    transformations: Some("filter: $X001$ > 5;aggregate:sum".to_string()),
+                    children: vec![],
+                    transformations: vec![
+                        Transformation::Filter("$X001$ > 5".to_string()),
+                        Transformation::Aggregate(AggregationType::Sum),
+                    ],
                     theta: None,
-                    output: Some("yes".to_string()),
+                    output: true,
                 },
-                InitNode {
+                Node {
                     label: "X002".to_string(),
                     name: "some_other_node".to_string(),
-                    children: None,
-                    transformations: None,
+                    children: vec![],
+                    transformations: vec![],
                     theta: None,
-                    output: None,
+                    output: false,
                 },
             ],
         }
@@ -100,29 +148,5 @@ mod tests {
         let path = path.to_str().unwrap().to_string();
         let expected_query = get_expected_query();
         assert_eq!(load_query_xml(path).unwrap(), expected_query)
-    }
-
-    #[test]
-    fn test_node_field_clearing() {
-        let mut node = InitNode {
-            label: "X001".to_string(),
-            name: "some_node".to_string(),
-            children: Some("".to_string()),
-            transformations: Some("aggregate:sum".to_string()),
-            theta: Some("".to_string()),
-            output: Some("yes".to_string()),
-        };
-        node.clear_empty_strings();
-        assert_eq!(
-            node,
-            InitNode {
-                label: "X001".to_string(),
-                name: "some_node".to_string(),
-                children: None,
-                transformations: Some("aggregate:sum".to_string()),
-                theta: None,
-                output: Some("yes".to_string()),
-            }
-        )
     }
 }
