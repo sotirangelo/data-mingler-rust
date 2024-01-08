@@ -5,7 +5,7 @@ use anyhow::Result;
 use serde::de::Deserializer;
 use serde::Deserialize;
 
-use super::helpers::read_xml_file;
+use crate::dvmql::helpers::read_xml_file;
 use crate::transform::aggregate::AggregationType;
 use crate::transform::Transformation;
 
@@ -16,13 +16,14 @@ pub fn load_query_xml(query_path: String) -> Result<Query> {
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Query {
+    #[serde(rename = "rootnode")]
     pub root_node: String,
     #[serde(rename = "node")]
-    pub nodes: Vec<Node>,
+    pub nodes: Vec<DeserializedNode>,
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
-pub struct Node {
+pub struct DeserializedNode {
     #[serde(rename = "onnode")]
     pub name: String,
     pub label: String,
@@ -52,6 +53,9 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
+    if s.is_empty() {
+        return Ok(vec![]);
+    }
     Ok(s.split(',').map(|part| part.trim().to_string()).collect())
 }
 
@@ -110,7 +114,7 @@ mod tests {
         Query {
             root_node: "X000".to_string(),
             nodes: vec![
-                Node {
+                DeserializedNode {
                     label: "X000".to_string(),
                     name: "root_node".to_string(),
                     children: vec!["X001".to_string(), "X002".to_string()],
@@ -118,7 +122,7 @@ mod tests {
                     theta: None,
                     output: false,
                 },
-                Node {
+                DeserializedNode {
                     label: "X001".to_string(),
                     name: "some_node".to_string(),
                     children: vec![],
@@ -129,7 +133,7 @@ mod tests {
                     theta: None,
                     output: true,
                 },
-                Node {
+                DeserializedNode {
                     label: "X002".to_string(),
                     name: "some_other_node".to_string(),
                     children: vec![],
