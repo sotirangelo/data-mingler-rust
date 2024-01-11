@@ -1,4 +1,4 @@
-# DataMingler written in Rust [![Rust CI](https://github.com/sotirangelo/data-mingler-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/sotirangelo/data-mingler-rust/actions/workflows/ci.yml)
+# DataMingler written in Rust [![Rust CI](https://github.com/sotirangelo/data-mingler-rust/actions/workflows/ci.yml/badge.svg)](https://github.com/sotirangelo/data-mingler-rust/actions/workflows/ci.yml) [![Test Coverage](https://raw.githubusercontent.com/sotirangelo/data-mingler-rust/_xml_coverage_reports/data/main/badge.svg)](https://raw.githubusercontent.com/sotirangelo/data-mingler-rust/_xml_coverage_reports/data/main/badge.svg)
 
 DataMingler is a tool that implements Data Virtual Machines (DVMs).
 DVM is a graph-based conceptual model that serves as a representation of data, treating
