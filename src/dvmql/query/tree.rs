@@ -1,10 +1,14 @@
+//! # Tree structure produced by DVMQL query
+//!
+//! This module contains the logic for building the tree structure defined in a DVMQL query.
+
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 
 use crate::{dvmql::query::deserialization::DeserializedNode, transform::Transformation};
-
 use super::deserialization::Query;
 
+/// Node of the tree structure defined in a DVMQL query.
 pub struct TreeNode {
     pub name: String,
     pub label: String,
@@ -34,6 +38,7 @@ impl TreeNode {
     }
 }
 
+/// Helper function for taking a deserialized query and building the tree structure.
 pub fn build_tree(query: Query) -> Result<TreeNode> {
     let mut deserialized_nodes_map: HashMap<String, DeserializedNode> = query
         .nodes
@@ -54,6 +59,7 @@ pub fn build_tree(query: Query) -> Result<TreeNode> {
     Ok(root_node)
 }
 
+/// Helper function for building a node of the tree structure.
 fn build_node(
     node: DeserializedNode,
     nodes_map: &mut HashMap<String, DeserializedNode>,
