@@ -1,19 +1,19 @@
-use std::str::FromStr;
+//! # Query deserialization
+//!
+//! This module containts deserialization logic for the query XML file.
 
 use anyhow::Result;
-
 use serde::de::Deserializer;
 use serde::Deserialize;
+use std::str::FromStr;
 
-use crate::dvmql::helpers::read_xml_file;
 use crate::transform::aggregate::AggregationType;
 use crate::transform::Transformation;
 
-pub fn load_query_xml(query_path: String) -> Result<Query> {
-    let query: Query = read_xml_file(query_path)?;
-    Ok(query)
-}
-
+/// Intermediate representation of the deserialized query XML file.
+///
+/// This struct is used to deserialize the XML file into a more
+/// usable format.
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Query {
     #[serde(rename = "rootnode")]
@@ -22,6 +22,7 @@ pub struct Query {
     pub nodes: Vec<DeserializedNode>,
 }
 
+/// Intermediate representation of a node in the deserialized query XML file.
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct DeserializedNode {
     #[serde(rename = "onnode")]
@@ -37,6 +38,7 @@ pub struct DeserializedNode {
     pub output: bool,
 }
 
+/// Deserialization helper function for the theta
 fn deserialize_theta<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
@@ -48,6 +50,7 @@ where
     Ok(Some(s))
 }
 
+/// Deserialization helper function for nodes' children
 fn deserialize_children<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
 where
     D: Deserializer<'de>,
@@ -59,6 +62,7 @@ where
     Ok(s.split(',').map(|part| part.trim().to_string()).collect())
 }
 
+/// Deserialization helper function for nodes' transformations
 fn deserialize_transformations<'de, D>(deserializer: D) -> Result<Vec<Transformation>, D::Error>
 where
     D: Deserializer<'de>,
@@ -89,6 +93,7 @@ where
     Ok(transformations)
 }
 
+/// Deserialization helper function for nodes' output
 fn deserialize_output<'de, D>(deserializer: D) -> Result<bool, D::Error>
 where
     D: Deserializer<'de>,
@@ -145,12 +150,14 @@ mod tests {
         }
     }
 
+    use crate::dvmql::helpers::read_xml_file;
+
     #[test]
     fn test_load_query_xml() {
         let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
         path.push("test_data/example_query.xml");
         let path = path.to_str().unwrap().to_string();
         let expected_query = get_expected_query();
-        assert_eq!(load_query_xml(path).unwrap(), expected_query)
+        assert_eq!(read_xml_file::<Query>(path).unwrap(), expected_query)
     }
 }

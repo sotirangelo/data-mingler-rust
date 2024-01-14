@@ -1,12 +1,16 @@
-use std::collections::HashMap;
+//! # Datasources
+//!
+//! This module containts deserialization logic for the datasources XML file.
 
 use anyhow::Result;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 use super::helpers::read_xml_file;
 
+/// Helper function for loading and deserializing the datasources XML file
 pub fn load_datasources_xml(datasources_path: String) -> Result<HashMap<String, Datasource>> {
-    let init_datasources: InitDatasources = read_xml_file(datasources_path)?;
+    let init_datasources: DeserializedDatasources = read_xml_file(datasources_path)?;
     let res: HashMap<String, Datasource> = init_datasources
         .datasource
         .iter()
@@ -25,13 +29,15 @@ pub fn load_datasources_xml(datasources_path: String) -> Result<HashMap<String, 
     Ok(res)
 }
 
+/// Intermediate representation of the deserialized datasources XML file.
 #[derive(Deserialize, Debug, PartialEq)]
-struct InitDatasources {
-    datasource: Vec<InitDatasource>,
+struct DeserializedDatasources {
+    datasource: Vec<DeserializedDatasource>,
 }
 
+/// Intermediate representation of a datasource in the deserialized datasources XML file.
 #[derive(Deserialize, Debug, PartialEq)]
-struct InitDatasource {
+struct DeserializedDatasource {
     #[serde(rename = "@type", default)]
     ds_type: String,
     id: u8,
@@ -48,8 +54,7 @@ struct InitDatasource {
     database: Option<String>,
 }
 
-impl InitDatasource {}
-
+/// Enum representing the different types of datasources.
 #[derive(Debug, PartialEq)]
 pub enum Datasource {
     Csv(Csv),
@@ -58,6 +63,7 @@ pub enum Datasource {
     Database(Database),
 }
 
+/// CSV datasource (Also used for XML for now)
 #[derive(Debug, PartialEq)]
 pub struct Csv {
     id: u8,
@@ -68,8 +74,8 @@ pub struct Csv {
     headings: String,
 }
 
-impl From<&InitDatasource> for Csv {
-    fn from(ds: &InitDatasource) -> Csv {
+impl From<&DeserializedDatasource> for Csv {
+    fn from(ds: &DeserializedDatasource) -> Csv {
         Csv {
             id: ds.id,
             name: ds.name.to_owned(),
@@ -93,6 +99,7 @@ impl From<&InitDatasource> for Csv {
     }
 }
 
+/// Excel datasource
 #[derive(Debug, PartialEq)]
 pub struct Excel {
     id: u8,
@@ -102,8 +109,8 @@ pub struct Excel {
     sheet: String,
     headings: String,
 }
-impl From<&InitDatasource> for Excel {
-    fn from(ds: &InitDatasource) -> Excel {
+impl From<&DeserializedDatasource> for Excel {
+    fn from(ds: &DeserializedDatasource) -> Excel {
         Excel {
             id: ds.id,
             name: ds.name.to_owned(),
@@ -127,6 +134,7 @@ impl From<&InitDatasource> for Excel {
     }
 }
 
+/// Database datasource
 #[derive(Debug, PartialEq)]
 pub struct Database {
     id: u8,
@@ -138,8 +146,8 @@ pub struct Database {
     database: String,
 }
 
-impl From<&InitDatasource> for Database {
-    fn from(ds: &InitDatasource) -> Database {
+impl From<&DeserializedDatasource> for Database {
+    fn from(ds: &DeserializedDatasource) -> Database {
         Database {
             id: ds.id,
             name: ds.name.to_owned(),
@@ -173,10 +181,10 @@ mod tests {
 
     use super::*;
 
-    fn get_init_datasources() -> InitDatasources {
-        InitDatasources {
+    fn get_init_datasources() -> DeserializedDatasources {
+        DeserializedDatasources {
             datasource: vec![
-                InitDatasource {
+                DeserializedDatasource {
                     ds_type: String::from("csv"),
                     id: 1,
                     name: String::from("myCSV"),
@@ -191,7 +199,7 @@ mod tests {
                     password: None,
                     database: None,
                 },
-                InitDatasource {
+                DeserializedDatasource {
                     ds_type: String::from("excel"),
                     id: 2,
                     name: String::from("myExcel"),
@@ -206,7 +214,7 @@ mod tests {
                     password: None,
                     database: None,
                 },
-                InitDatasource {
+                DeserializedDatasource {
                     ds_type: String::from("xml"),
                     id: 3,
                     name: String::from("myCSV2"),
@@ -221,7 +229,7 @@ mod tests {
                     password: None,
                     database: None,
                 },
-                InitDatasource {
+                DeserializedDatasource {
                     ds_type: String::from("db"),
                     id: 4,
                     name: String::from("sqlDb"),
@@ -298,7 +306,7 @@ mod tests {
     #[test]
     fn test_loading_initial_datasource_structs() {
         let path = get_test_file_path();
-        let datasources: InitDatasources = read_xml_file(path).unwrap();
+        let datasources: DeserializedDatasources = read_xml_file(path).unwrap();
         assert_eq!(datasources, get_init_datasources());
     }
 
