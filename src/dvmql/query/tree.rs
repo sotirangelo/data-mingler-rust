@@ -3,10 +3,11 @@
 //! This module contains the logic for building the tree structure defined in a DVMQL query.
 
 use anyhow::{Context, Result};
+use log::trace;
 use std::collections::HashMap;
 
-use crate::{dvmql::query::deserialization::DeserializedNode, transform::Transformation};
 use super::deserialization::Query;
+use crate::{dvmql::query::deserialization::DeserializedNode, transform::Transformation};
 
 /// Node of the tree structure defined in a DVMQL query.
 pub struct TreeNode {
@@ -84,7 +85,8 @@ fn build_node(
                             child_name.clone()
                         )
                     })?;
-                build_node(child, nodes_map)                            
+                trace!("Building tree node {}: {}", child.name, child.label);
+                build_node(child, nodes_map)
             })
             .collect::<Result<Vec<TreeNode>>>()?;
         tree_node.children = children;

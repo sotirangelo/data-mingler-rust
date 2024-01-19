@@ -3,6 +3,7 @@
 //! This module containts deserialization logic for the datasources XML file.
 
 use anyhow::Result;
+use log::{debug, info, trace};
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -10,7 +11,9 @@ use super::helpers::read_xml_file;
 
 /// Helper function for loading and deserializing the datasources XML file
 pub fn load_datasources_xml(datasources_path: String) -> Result<HashMap<String, Datasource>> {
-    let init_datasources: DeserializedDatasources = read_xml_file(datasources_path)?;
+    info!("Loading datasources from {}", datasources_path);
+    let init_datasources: DeserializedDatasources = read_xml_file(&datasources_path)?;
+    debug!("Deserialized datasources from XML {}", datasources_path);
     let res: HashMap<String, Datasource> = init_datasources
         .datasource
         .iter()
@@ -23,9 +26,15 @@ pub fn load_datasources_xml(datasources_path: String) -> Result<HashMap<String, 
                 // TODO: Handle error
                 &_ => panic!("Incorrect datasource type given: {}", init_ds.ds_type),
             };
+            trace!(
+                "Collecting {} datasource: {}",
+                init_ds.ds_type.to_uppercase(),
+                init_ds.name
+            );
             (init_ds.name.clone(), ds)
         })
         .collect();
+    debug!("Built collection of datasources from datasources XML");
     Ok(res)
 }
 
@@ -306,7 +315,7 @@ mod tests {
     #[test]
     fn test_loading_initial_datasource_structs() {
         let path = get_test_file_path();
-        let datasources: DeserializedDatasources = read_xml_file(path).unwrap();
+        let datasources: DeserializedDatasources = read_xml_file(&path).unwrap();
         assert_eq!(datasources, get_init_datasources());
     }
 
