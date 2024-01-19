@@ -4,15 +4,15 @@ mod transform;
 
 use std::collections::HashMap;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use async_recursion::async_recursion;
 
 use clap::Parser;
 
-use dvmql::{
-    datasources::{self, Datasource},
-    query::tree::TreeNode,
-};
+use dvmql::{datasources, query::tree::TreeNode};
+use env_logger::Builder;
+use load::Datasource;
+use log::{trace, LevelFilter};
 use neo4rs::{query, Graph};
 
 use crate::{dvmql::query::load_query_xml, load::edges::Edge};
@@ -27,6 +27,8 @@ struct Args {
     output: String,
     #[arg(short, long, default_value_t = String::from("ALL"))]
     mode: String,
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
 }
 
 const QUERY: &str = "MATCH (a:attribute{name: $nodeA})-[r:has]->(b:attribute{name: $nodeB}) RETURN r.datasource as datasource, r.query as query, r.key as key, r.value as value";
@@ -39,10 +41,7 @@ async fn dfs(
 ) -> Result<()> {
     for child in &node.children {
         dfs(child, graph, datasources).await?;
-    }
 
-    println!("Evaluating {}", &node.label);
-    for child in &node.children {
         let mut result = graph
             .execute(
                 query(QUERY)
@@ -51,31 +50,42 @@ async fn dfs(
             )
             .await?;
         while let Some(r) = result.next().await? {
-            let datasource: String = r.to::<Edge>().unwrap().datasource_name;
-            let key: u32 = r.to::<Edge>().unwrap().key_pos;
-            let value: u32 = r.to::<Edge>().unwrap().value_pos;
-            println!("Datasource: {}, Key: {}, Value: {}", datasource, key, value);
-            datasources.get(&datasource).unwrap_or_else(|| {
-                panic!("Datasource {} not found in datasources list", &datasource)
-            });
+            let datasource: String = r.to::<Edge>()?.datasource_name;
+            let key: u32 = r.to::<Edge>()?.key_pos;
+            let value: u32 = r.to::<Edge>()?.value_pos;
+            let dt = datasources.get(&datasource).with_context(|| {
+                format!("Datasource {} not found in datasources list", &datasource)
+            })?;
+            trace!("Edge {} => {}", &child.label, &node.label);
         }
-        println!("Finished with child {}", &child.label);
     }
     Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Parse CLI arguments
     let args = Args::parse();
-    println!("{:?}", args);
 
-    let _neo4j_graph = Graph::new("bolt://localhost:7687", "neo4j", "12345678").await?;
-    assert!(_neo4j_graph.run(query("RETURN 1")).await.is_ok());
+    // Initialize logger
+    let log_level = match args.debug {
+        1 => LevelFilter::Info,
+        2 => LevelFilter::Debug,
+        3 => LevelFilter::Trace,
+        _ => LevelFilter::Error,
+    };
+    Builder::new().filter_level(log_level).init();
 
+    // Initialize Neo4j graph
+    let neo4j = Graph::new("bolt://localhost:7687", "neo4j", "12345678").await?;
+    assert!(neo4j.run(query("RETURN 1")).await.is_ok());
+
+    // Load query & datasources
     let tree = load_query_xml(args.query_path)?;
-    let _datasources = datasources::load_datasources_xml(args.datasources_path)?;
+    let datasources = datasources::load_datasources_xml(args.datasources_path)?;
 
-    dfs(&tree, &_neo4j_graph, &_datasources).await?;
+    // Execute query
+    dfs(&tree, &neo4j, &datasources).await?;
 
     Ok(())
 }

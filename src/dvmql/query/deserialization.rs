@@ -158,6 +158,6 @@ mod tests {
         path.push("test_data/example_query.xml");
         let path = path.to_str().unwrap().to_string();
         let expected_query = get_expected_query();
-        assert_eq!(read_xml_file::<Query>(path).unwrap(), expected_query)
+        assert_eq!(read_xml_file::<Query>(&path).unwrap(), expected_query)
     }
 }
