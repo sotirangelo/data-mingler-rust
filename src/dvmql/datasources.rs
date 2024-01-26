@@ -7,6 +7,8 @@ use log::{debug, info, trace};
 use serde::Deserialize;
 use std::collections::HashMap;
 
+use crate::load::{Csv, Database, Datasource, Excel, Xml};
+
 use super::helpers::read_xml_file;
 
 /// Helper function for loading and deserializing the datasources XML file
@@ -20,7 +22,7 @@ pub fn load_datasources_xml(datasources_path: String) -> Result<HashMap<String, 
         .map(|init_ds| {
             let ds = match init_ds.ds_type.as_str() {
                 "csv" => Datasource::Csv(Csv::from(init_ds)),
-                "xml" => Datasource::Xml(Csv::from(init_ds)),
+                "xml" => Datasource::Xml(Xml::from(init_ds)),
                 "db" => Datasource::Database(Database::from(init_ds)),
                 "excel" => Datasource::Excel(Excel::from(init_ds)),
                 // TODO: Handle error
@@ -54,7 +56,7 @@ struct DeserializedDatasource {
     filename: Option<String>,
     path: Option<String>,
     sheet: Option<String>,
-    delimiter: Option<String>,
+    delimiter: Option<char>,
     headings: Option<String>,
     system: Option<String>,
     connection: Option<String>,
@@ -63,25 +65,7 @@ struct DeserializedDatasource {
     database: Option<String>,
 }
 
-/// Enum representing the different types of datasources.
-#[derive(Debug, PartialEq)]
-pub enum Datasource {
-    Csv(Csv),
-    Xml(Csv),
-    Excel(Excel),
-    Database(Database),
-}
-
-/// CSV datasource (Also used for XML for now)
-#[derive(Debug, PartialEq)]
-pub struct Csv {
-    id: u8,
-    name: String,
-    filename: String,
-    path: String,
-    delimiter: String,
-    headings: String,
-}
+const HEADINGS_HAYSTACK: [&str; 4] = ["yes", "true", "y", "1"];
 
 impl From<&DeserializedDatasource> for Csv {
     fn from(ds: &DeserializedDatasource) -> Csv {
@@ -100,24 +84,33 @@ impl From<&DeserializedDatasource> for Csv {
                 .delimiter
                 .to_owned()
                 .expect("CSV delimiter field should be defined"),
-            headings: ds
-                .headings
-                .to_owned()
-                .expect("CSV headings field should be defined"),
+            has_headers: HEADINGS_HAYSTACK.contains(
+                &ds.headings
+                    .to_owned()
+                    .expect("CSV headings should be defined")
+                    .as_str(),
+            ),
         }
     }
 }
 
-/// Excel datasource
-#[derive(Debug, PartialEq)]
-pub struct Excel {
-    id: u8,
-    name: String,
-    filename: String,
-    path: String,
-    sheet: String,
-    headings: String,
+impl From<&DeserializedDatasource> for Xml {
+    fn from(ds: &DeserializedDatasource) -> Xml {
+        Xml {
+            id: ds.id,
+            name: ds.name.to_owned(),
+            filename: ds
+                .filename
+                .to_owned()
+                .expect("CSV filename field should be defined"),
+            path: ds
+                .path
+                .to_owned()
+                .expect("CSV path field should be defined"),
+        }
+    }
 }
+
 impl From<&DeserializedDatasource> for Excel {
     fn from(ds: &DeserializedDatasource) -> Excel {
         Excel {
@@ -135,24 +128,14 @@ impl From<&DeserializedDatasource> for Excel {
                 .sheet
                 .to_owned()
                 .expect("Excel sheet field should be defined"),
-            headings: ds
-                .headings
-                .to_owned()
-                .expect("Excel headings field should be defined"),
+            has_headers: HEADINGS_HAYSTACK.contains(
+                &ds.headings
+                    .to_owned()
+                    .expect("Excel headings should be defined")
+                    .as_str(),
+            ),
         }
     }
-}
-
-/// Database datasource
-#[derive(Debug, PartialEq)]
-pub struct Database {
-    id: u8,
-    name: String,
-    system: String,
-    connection: String,
-    username: String,
-    password: String,
-    database: String,
 }
 
 impl From<&DeserializedDatasource> for Database {
@@ -199,7 +182,7 @@ mod tests {
                     name: String::from("myCSV"),
                     filename: Some(String::from("file.csv")),
                     path: Some(String::from("/some-path/")),
-                    delimiter: Some(String::from(",")),
+                    delimiter: Some(','),
                     headings: Some(String::from("yes")),
                     sheet: None,
                     system: None,
@@ -229,7 +212,7 @@ mod tests {
                     name: String::from("myCSV2"),
                     filename: Some(String::from("file.xml")),
                     path: Some(String::from("/some-path/")),
-                    delimiter: Some(String::from(",")),
+                    delimiter: Some(','),
                     headings: Some(String::from("yes")),
                     sheet: None,
                     system: None,
@@ -264,8 +247,8 @@ mod tests {
                 name: String::from("myCSV"),
                 filename: String::from("file.csv"),
                 path: String::from("/some-path/"),
-                delimiter: String::from(","),
-                headings: String::from("yes"),
+                delimiter: ',',
+                has_headers: true,
             }),
             Datasource::Excel(Excel {
                 id: 2,
@@ -273,15 +256,13 @@ mod tests {
                 filename: String::from("file.xlsx"),
                 path: String::from("/some-path/"),
                 sheet: String::from("Sheet1"),
-                headings: String::from("no"),
+                has_headers: false,
             }),
-            Datasource::Xml(Csv {
+            Datasource::Xml(Xml {
                 id: 3,
                 name: String::from("myCSV2"),
                 filename: String::from("file.xml"),
                 path: String::from("/some-path/"),
-                delimiter: String::from(","),
-                headings: String::from("yes"),
             }),
             Datasource::Database(Database {
                 id: 4,
