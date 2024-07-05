@@ -1,21 +1,10 @@
-mod dvmql;
-mod load;
-mod transform;
-
-use std::collections::HashMap;
-
-use anyhow::{Context, Result};
-use async_recursion::async_recursion;
-
+use anyhow::Result;
 use clap::Parser;
-
-use dvmql::{datasources, query::tree::TreeNode};
 use env_logger::Builder;
-use load::Datasource;
-use log::{trace, LevelFilter};
+use log::LevelFilter;
 use neo4rs::{query, Graph};
 
-use crate::{dvmql::query::load_query_xml, load::edges::Edge};
+use data_mingler_rust::{dfs, dvmql::datasources, dvmql::query::load_query_xml};
 
 // TODO: Add arguments for neo4j db
 #[derive(Parser, Debug)]
@@ -29,37 +18,6 @@ struct Args {
     mode: String,
     #[arg(short, long, action = clap::ArgAction::Count)]
     debug: u8,
-}
-
-const QUERY: &str = "MATCH (a:attribute{name: $nodeA})-[r:has]->(b:attribute{name: $nodeB}) RETURN r.datasource as datasource, r.query as query, r.key as key, r.value as value";
-
-#[async_recursion]
-async fn dfs(
-    node: &TreeNode,
-    graph: &Graph,
-    datasources: &HashMap<String, Datasource>,
-) -> Result<()> {
-    for child in &node.children {
-        dfs(child, graph, datasources).await?;
-
-        let mut result = graph
-            .execute(
-                query(QUERY)
-                    .param("nodeA", child.name.as_str())
-                    .param("nodeB", node.name.as_str()),
-            )
-            .await?;
-        while let Some(r) = result.next().await? {
-            let datasource: String = r.to::<Edge>()?.datasource_name;
-            let key: u32 = r.to::<Edge>()?.key_pos;
-            let value: u32 = r.to::<Edge>()?.value_pos;
-            let dt = datasources.get(&datasource).with_context(|| {
-                format!("Datasource {} not found in datasources list", &datasource)
-            })?;
-            trace!("Edge {} => {}", &child.label, &node.label);
-        }
-    }
-    Ok(())
 }
 
 #[tokio::main]
