@@ -39,8 +39,8 @@ async fn main() -> Result<()> {
     assert!(neo4j.run(query("RETURN 1")).await.is_ok());
 
     // Load query & datasources
-    let tree = load_query_xml(args.query_path)?;
-    let datasources = datasources::load_datasources_xml(args.datasources_path)?;
+    let tree = load_query_xml(&args.query_path)?;
+    let datasources = datasources::load_datasources_xml(&args.datasources_path)?;
 
     // Execute query
     dfs(&tree, &neo4j, &datasources).await?;

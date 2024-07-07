@@ -12,9 +12,9 @@ use crate::load::{Csv, Database, Datasource, Excel, Xml};
 use super::helpers::read_xml_file;
 
 /// Helper function for loading and deserializing the datasources XML file
-pub fn load_datasources_xml(datasources_path: String) -> Result<HashMap<String, Datasource>> {
+pub fn load_datasources_xml(datasources_path: &str) -> Result<HashMap<String, Datasource>> {
     info!("Loading datasources from {}", datasources_path);
-    let init_datasources: DeserializedDatasources = read_xml_file(&datasources_path)?;
+    let init_datasources: DeserializedDatasources = read_xml_file(datasources_path)?;
     debug!("Deserialized datasources from XML {}", datasources_path);
     let res: HashMap<String, Datasource> = init_datasources
         .datasource
@@ -303,7 +303,7 @@ mod tests {
     #[test]
     fn test_load_datasources_xml() {
         let path = get_test_file_path();
-        let datasources = load_datasources_xml(path).unwrap();
+        let datasources = load_datasources_xml(&path).unwrap();
         assert_eq!(datasources, get_datasources());
     }
 }
