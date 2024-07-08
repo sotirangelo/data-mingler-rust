@@ -3,6 +3,13 @@ name = "data-mingler-rust"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "dvm-to-neo4j"
+path = "src/bin/dvm_to_neo4j.rs"
+test = false
+bench = false
+doc = false
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
