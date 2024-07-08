@@ -4,9 +4,9 @@ pub mod transform;
 
 use anyhow::{Context, Result};
 use async_recursion::async_recursion;
-use log::trace;
 use neo4rs::{query, Graph};
 use std::collections::HashMap;
+use tracing::trace;
 
 use dvmql::query::tree::TreeNode;
 use load::Datasource;

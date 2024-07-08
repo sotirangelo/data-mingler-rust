@@ -6,7 +6,7 @@ mod deserialization;
 pub mod tree;
 
 use anyhow::Result;
-use log::{debug, info};
+use tracing::{debug, info};
 
 use self::{deserialization::Query, tree::TreeNode};
 use crate::dvmql::helpers::read_xml_file;

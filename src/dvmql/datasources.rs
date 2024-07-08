@@ -3,9 +3,9 @@
 //! This module containts deserialization logic for the datasources XML file.
 
 use anyhow::Result;
-use log::{debug, info, trace};
 use serde::Deserialize;
 use std::collections::HashMap;
+use tracing::{debug, info, trace};
 
 use crate::load::{Csv, Database, Datasource, Excel, Xml};
 

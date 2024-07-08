@@ -3,8 +3,8 @@
 //! This module contains the logic for building the tree structure defined in a DVMQL query.
 
 use anyhow::{Context, Result};
-use log::trace;
 use std::collections::HashMap;
+use tracing::trace;
 
 use super::deserialization::Query;
 use crate::{dvmql::query::deserialization::DeserializedNode, transform::Transformation};
