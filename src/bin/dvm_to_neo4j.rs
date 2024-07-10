@@ -36,7 +36,10 @@ async fn main() -> Result<()> {
 
     // Initialize Neo4j graph
     let neo4j = Graph::new(args.bolt_uri, "neo4j", "12345678").await?;
-    assert!(neo4j.run(query("RETURN 1")).await.is_ok());
+    assert!(
+        neo4j.run(query("RETURN 1")).await.is_ok(),
+        "Failed to connect to Neo4j"
+    );
     debug!("Connected to Neo4j");
 
     if !args.use_existing_graph {
